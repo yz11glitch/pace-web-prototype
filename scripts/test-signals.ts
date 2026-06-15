@@ -271,11 +271,30 @@ check(
   Array.isArray(noIncome.signals),
   'No income configuration completes without crashing.',
 );
+check(
+  !noIncome.signals.some(signal => signal.id.startsWith('saving-')),
+  'No income configuration does not produce a potential-savings signal.',
+);
 
 const noBudgets = findResult(results, 'No budgets set');
 check(
   Array.isArray(noBudgets.signals),
   'No budgets configuration completes without crashing.',
+);
+check(
+  noBudgets.signals
+    .filter(signal => signal.id.startsWith('saving-'))
+    .every(signal => (
+      signal.title === 'Potential savings'
+      && signal.sub.includes('remains after tracked spending this month')
+    )),
+  'No budgets configuration only describes leftover income as potential savings.',
+);
+
+const strongInvesting = findResult(results, 'Strong investing month');
+check(
+  strongInvesting.signals.some(signal => signal.id === 'invest-hit'),
+  'Strong investing month still shows investing target progress.',
 );
 
 const invalid = findResult(results, 'Invalid/negative/zero amounts safety');
@@ -286,6 +305,14 @@ check(
 );
 
 for (const result of results) {
+  const savingClaims = result.signals.filter(signal => (
+    /\bsaved\b/i.test(`${signal.title} ${signal.sub}`)
+    || /set aside/i.test(`${signal.title} ${signal.sub}`)
+  ));
+  check(
+    savingClaims.length === 0,
+    `${result.scenario.name} does not imply leftover income was explicitly saved.`,
+  );
   check(
     result.signals.length <= HOME_SIGNAL_LIMIT,
     `${result.scenario.name} stays within the Home signal limit.`,

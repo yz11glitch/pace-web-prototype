@@ -336,16 +336,16 @@ function detectInvest(ctx: SignalContext): Signal | null {
 
 function detectSaving(ctx: SignalContext): Signal | null {
   const { savingTarget, income } = ctx.settings;
-  const { saved, daysLeft } = ctx.sum;
-  if (income <= 0 || savingTarget <= 0 || saved <= 0) return null;
+  const { saved: remainingAfterTracked, daysLeft } = ctx.sum;
+  if (income <= 0 || savingTarget <= 0 || remainingAfterTracked <= 0) return null;
 
-  if (saved >= savingTarget && daysLeft <= 5) {
+  if (remainingAfterTracked >= savingTarget && daysLeft <= 5) {
     return createSignal({
       id: 'saving-hit',
       type: 'good',
       icon: 'save',
-      title: 'Saving goal reached',
-      sub: `${amount(ctx, saved)} saved this month - target hit.`,
+      title: 'Potential savings above target',
+      sub: `${amount(ctx, remainingAfterTracked)} remains after tracked spending this month, above your ${amount(ctx, savingTarget)} target.`,
       priority: 62,
     });
   }
@@ -354,8 +354,8 @@ function detectSaving(ctx: SignalContext): Signal | null {
     id: 'saving-progress',
     type: 'goal',
     icon: 'save',
-    title: 'Saving is building up',
-    sub: `${amount(ctx, saved)} of your ${amount(ctx, savingTarget)} goal set aside so far.`,
+    title: 'Potential savings',
+    sub: `${amount(ctx, remainingAfterTracked)} remains after tracked spending this month.`,
     priority: 48,
   });
 }
