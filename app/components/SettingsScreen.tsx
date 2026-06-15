@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import { Toggle, SectionHeader } from './shared';
 import { useStore } from './StoreProvider';
 import { CATEGORIES } from '../lib/data';
+import { createBackup, PaceBackup, parseBackup } from '../lib/backup';
 
 type MobilePlatform = 'ios' | 'android' | 'other';
 
@@ -190,10 +191,69 @@ function CatBadgeSmall({ cat }: { cat: string }) {
   );
 }
 
-export default function SettingsScreen() {
-  const { settings, updateSettings, updateBudget, theme, setTheme, resetData, currency, money } = useStore();
+function DataConfirmation({
+  title, description, confirmLabel, destructive = false, onCancel, onConfirm,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <>
+      <div className="scrim show" onClick={onCancel} />
+      <section
+        className="sheet data-confirm-sheet show"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="data-confirm-title"
+        aria-describedby="data-confirm-description"
+      >
+        <div className="sheet-handle" aria-hidden="true">
+          <span className="sheet-grab" />
+        </div>
+        <div className="data-confirm-layout">
+          <div className="data-confirm-content">
+            <div className="set-ico data-confirm-icon">
+              <Icon name={destructive ? 'trash' : 'upload'} size={20} sw={2} />
+            </div>
+            <div id="data-confirm-title" className="t-h2">{title}</div>
+            <p id="data-confirm-description">{description}</p>
+          </div>
+          <div className="data-confirm-buttons">
+            <button type="button" className="data-confirm-cancel press" onClick={onCancel}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={'data-confirm-submit press' + (destructive ? ' destructive' : '')}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+interface SettingsScreenProps {
+  onNotify: (text: string, icon?: string) => void;
+}
+
+export default function SettingsScreen({ onNotify }: SettingsScreenProps) {
+  const {
+    txns, settings, updateSettings, updateBudget, theme, setTheme,
+    restoreData, resetData, currency, money,
+  } = useStore();
   const [curOpen, setCurOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [pendingBackup, setPendingBackup] = useState<PaceBackup | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const totalBudget = CATEGORIES.reduce((s, c) => s + (settings.budgets[c.id] || 0), 0);
   const planned = settings.savingTarget + settings.investTarget + totalBudget;
 
@@ -210,8 +270,70 @@ export default function SettingsScreen() {
     { code: 'auto', name: 'Auto' },
   ] as const;
 
+  const exportBackup = () => {
+    const backup = createBackup({ transactions: txns, settings, theme });
+    const blob = new Blob(
+      [JSON.stringify(backup, null, 2)],
+      { type: 'application/json;charset=utf-8' },
+    );
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const date = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pace-backup-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    onNotify('Backup exported');
+  };
+
+  const selectBackup = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+
+    try {
+      if (!file) return;
+      if (file.size > 5_000_000) {
+        onNotify('Backup file is too large', 'alert');
+        return;
+      }
+
+      const parsed = parseBackup(JSON.parse(await file.text()) as unknown);
+      setPendingBackup(parsed);
+    } catch (error) {
+      const message = error instanceof SyntaxError
+        ? 'This file is not valid JSON'
+        : error instanceof Error
+          ? error.message
+          : 'Could not read this backup';
+      onNotify(message, 'alert');
+    } finally {
+      input.value = '';
+    }
+  };
+
+  const importBackup = () => {
+    if (!pendingBackup) return;
+    restoreData(pendingBackup.data);
+    setPendingBackup(null);
+    onNotify('Backup restored');
+  };
+
+  const resetLocalData = () => {
+    resetData();
+    setConfirmReset(false);
+    onNotify('Local data reset');
+  };
+
   return (
-    <div className="screen-fade settings-screen col gap-16">
+    <>
+      <div className="screen-fade settings-screen col gap-16">
       <div className="t-h1 page-header">Settings</div>
 
       {/* monthly plan summary */}
@@ -361,18 +483,68 @@ export default function SettingsScreen() {
       <div className="col gap-8">
         <SectionHeader title="Data" />
         <div className="set-group">
-          <button className="set-row press" style={{ width: '100%', textAlign: 'left' }} onClick={resetData}>
-            <div className="set-ico" style={{ background: 'var(--warm-soft)', color: 'var(--warm)' }}>
-              <Icon name="repeat" size={18} sw={2} />
+          <button type="button" className="set-row press data-action" onClick={exportBackup}>
+            <div className="set-ico" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+              <Icon name="download" size={18} sw={2} />
             </div>
-            <span className="set-lbl">Reset to sample data</span>
-            <div style={{ color: 'var(--ink-3)' }}><Icon name="chevron" size={16} sw={2.2} /></div>
+            <span className="set-lbl">Export backup</span>
+            <span className="data-action-end" aria-hidden="true"><Icon name="chevron" size={16} sw={2.2} /></span>
           </button>
+          <button
+            type="button"
+            className="set-row press data-action"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div className="set-ico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
+              <Icon name="upload" size={18} sw={2} />
+            </div>
+            <span className="set-lbl">Import backup</span>
+            <span className="data-action-end" aria-hidden="true"><Icon name="chevron" size={16} sw={2.2} /></span>
+          </button>
+          <button type="button" className="set-row press data-action" onClick={() => setConfirmReset(true)}>
+            <div className="set-ico" style={{ background: 'var(--warm-soft)', color: 'var(--warm)' }}>
+              <Icon name="trash" size={18} sw={2} />
+            </div>
+            <span className="set-lbl">Reset local data</span>
+            <span className="data-action-end" aria-hidden="true"><Icon name="chevron" size={16} sw={2.2} /></span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json,text/json,text/plain,application/octet-stream"
+            onChange={selectBackup}
+            tabIndex={-1}
+            aria-hidden="true"
+            hidden
+            style={{ display: 'none' }}
+          />
         </div>
         <div style={{ textAlign: 'center', padding: '8px 0 0' }}>
           <span className="muted-3" style={{ fontSize: 12, fontWeight: 600 }}>Pace · v1.0 · Spend at your own pace</span>
         </div>
       </div>
-    </div>
+      </div>
+
+      {pendingBackup && (
+        <DataConfirmation
+          title="Import this backup?"
+          description={`This will replace current local data with ${pendingBackup.data.transactions.length} transactions from ${new Date(pendingBackup.exportedAt).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}.`}
+          confirmLabel="Import backup"
+          onCancel={() => setPendingBackup(null)}
+          onConfirm={importBackup}
+        />
+      )}
+
+      {confirmReset && (
+        <DataConfirmation
+          title="Reset all local Pace data?"
+          description="This clears transactions and settings stored on this device and restores Pace defaults."
+          confirmLabel="Reset data"
+          destructive
+          onCancel={() => setConfirmReset(false)}
+          onConfirm={resetLocalData}
+        />
+      )}
+    </>
   );
 }

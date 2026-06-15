@@ -18,7 +18,8 @@
       "Bash(cp webfetch-1781267651562-dyde3w.bin pace-icon.gz)",
       "Bash(gunzip -c pace-icon.gz)",
       "Bash(mkdir -p pace-extracted)",
-      "Bash(tar xf *)"
+      "Bash(tar xf *)",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('app/components/Icon.tsx','utf8'\\); const m=s.match\\(/[a-z][a-zA-Z]*\\\\s*:\\\\s*[\\\\\\(<]/g\\); console.log\\([...new Set\\(m\\)].join\\(' '\\)\\)\")"
     ]
   }
 }

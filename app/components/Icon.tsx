@@ -61,6 +61,8 @@ export default function Icon({ name, size = 22, sw = 1.9, style }: IconProps) {
     leaf: <><path d="M5 19c0-8 6-13 14-13 0 8-6 13-14 13Z" {...p}/><path d="M5 19c2-5 5-8 9-10" {...p}/></>,
     tag: <><path d="M3.5 11.5 11 4h7v7l-7.5 7.5a2 2 0 0 1-2.8 0l-4.2-4.2a2 2 0 0 1 0-2.8Z" {...p}/><circle cx="14.5" cy="7.5" r="1.1" {...p} fill="currentColor"/></>,
     edit: <><path d="M14.5 5.5 18.5 9.5M4 20l1-4L16 5a2 2 0 0 1 3 3L8 19l-4 1Z" {...p}/></>,
+    download: <><path d="M12 3v12" {...p}/><path d="m7 10 5 5 5-5" {...p}/><path d="M5 20h14" {...p}/></>,
+    upload: <><path d="M12 16V4" {...p}/><path d="m7 9 5-5 5 5" {...p}/><path d="M5 20h14" {...p}/></>,
   };
 
   return (

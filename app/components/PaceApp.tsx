@@ -89,7 +89,7 @@ export default function PaceApp() {
           />
         )}
         {tab === 'stats' && <StatsScreen onEdit={openEdit} />}
-        {tab === 'settings' && <SettingsScreen />}
+        {tab === 'settings' && <SettingsScreen onNotify={showToast} />}
       </main>
 
       <button

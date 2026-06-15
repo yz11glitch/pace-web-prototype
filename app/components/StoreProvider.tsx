@@ -8,8 +8,9 @@ import {
   Transaction, Settings, INITIAL_TXNS, DEFAULT_SETTINGS,
   money,
 } from '../lib/data';
+import { PaceBackupData, PaceTheme } from '../lib/backup';
 
-type Theme = 'light' | 'dark' | 'auto';
+type Theme = PaceTheme;
 type Tab = 'home' | 'stats' | 'settings';
 
 interface Store {
@@ -26,6 +27,7 @@ interface Store {
   updateBudget: (catId: string, val: number) => void;
   setTheme: (t: Theme) => void;
   setTab: (t: Tab) => void;
+  restoreData: (data: PaceBackupData) => void;
   resetData: () => void;
   money: typeof money;
 }
@@ -147,9 +149,24 @@ function StoreState({ children, persisted }: { children: ReactNode; persisted: b
 
   const setTheme = useCallback((t: Theme) => setThemeState(t), []);
 
+  const restoreData = useCallback((data: PaceBackupData) => {
+    setTxns(data.transactions);
+    setSettings(data.settings);
+    setThemeState(data.theme);
+  }, []);
+
   const resetData = useCallback(() => {
-    setTxns(INITIAL_TXNS);
-    setSettings({ ...DEFAULT_SETTINGS });
+    try {
+      Object.keys(window.localStorage)
+        .filter(key => key.startsWith('pace_'))
+        .forEach(key => window.localStorage.removeItem(key));
+    } catch {}
+    setTxns([...INITIAL_TXNS]);
+    setSettings({
+      ...DEFAULT_SETTINGS,
+      budgets: { ...DEFAULT_SETTINGS.budgets },
+    });
+    setThemeState('light');
   }, []);
 
   const cur = settings.currency;
@@ -163,7 +180,7 @@ function StoreState({ children, persisted }: { children: ReactNode; persisted: b
     <Ctx.Provider value={{
       txns, settings, theme, effectiveTheme, tab, currency: cur,
       addTxn, updateTxn, deleteTxn, updateSettings, updateBudget,
-      setTheme, setTab, resetData,
+      setTheme, setTab, restoreData, resetData,
       money: moneyWithCur,
     }}>
       {children}

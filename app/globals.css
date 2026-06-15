@@ -580,6 +580,93 @@ input[type=number] { -moz-appearance: textfield; }
 .install-steps li { padding-left: 4px; }
 .install-steps li::marker { color: var(--green); font-weight: 800; }
 .install-divider { height: 1px; margin-top: 14px; background: var(--hair-2); }
+.data-action {
+  width: 100%;
+  min-height: 56px;
+  padding-inline: 14px;
+  text-align: left;
+}
+.data-action .set-lbl { line-height: 1.25; }
+.data-action-end {
+  width: 20px;
+  margin-left: 4px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+.data-confirm-sheet {
+  left: 50%;
+  right: auto;
+  width: min(100%, 430px);
+  max-width: 430px;
+  max-height: min(440px, 70dvh);
+  padding-bottom: 0;
+  overflow: hidden;
+  transform: translateX(-50%) translateY(100%);
+}
+.data-confirm-sheet.show {
+  transform: translateX(-50%) translateY(0);
+}
+.data-confirm-layout {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding:
+    8px
+    24px
+    max(24px, calc(16px + env(safe-area-inset-bottom)));
+}
+.data-confirm-content {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  text-align: center;
+}
+.data-confirm-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background: var(--warm-soft);
+  color: var(--warm);
+}
+.data-confirm-content p {
+  width: 100%;
+  max-width: 320px;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.45;
+}
+.data-confirm-buttons {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.data-confirm-buttons button {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.data-confirm-cancel { background: var(--bg-2); color: var(--ink-2); }
+.data-confirm-submit { background: var(--green); color: #fff; }
+.data-confirm-submit.destructive { background: var(--warm); }
+
+@media (max-width: 360px) {
+  .data-confirm-buttons { grid-template-columns: 1fr; }
+}
 
 /* toggle */
 .toggle { width: 46px; height: 28px; border-radius: 99px; background: var(--hair); position: relative; transition: background .25s; flex-shrink: 0; cursor: pointer; }
