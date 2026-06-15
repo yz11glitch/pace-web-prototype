@@ -3,7 +3,7 @@
 import Icon from './Icon';
 import { SignalCard, TxnRow, SectionHeader, EmptyState } from './shared';
 import { useStore } from './StoreProvider';
-import { summary, computeSignals, recentTxns, MONTH_LABEL } from '../lib/data';
+import { summary, computeSignals, recentTxns, MONTH_LABEL, Transaction } from '../lib/data';
 
 function SummaryHero() {
   const { txns, settings, money } = useStore();
@@ -71,9 +71,10 @@ interface HomeScreenProps {
   onOpenAdd: () => void;
   onSignalTap: () => void;
   goStats: () => void;
+  onEdit: (txn: Transaction) => void;
 }
 
-export default function HomeScreen({ onOpenAdd, onSignalTap, goStats }: HomeScreenProps) {
+export default function HomeScreen({ onOpenAdd, onSignalTap, goStats, onEdit }: HomeScreenProps) {
   const { txns, settings } = useStore();
   const sigs = computeSignals(txns, settings);
   const recent = recentTxns(txns, 5);
@@ -114,7 +115,7 @@ export default function HomeScreen({ onOpenAdd, onSignalTap, goStats }: HomeScre
         <SectionHeader title="Recent" action="See all" onAction={goStats} />
         <div className="card" style={{ padding: '4px 10px' }}>
           {recent.length ? recent.map((t, i) => (
-            <TxnRow key={t.id} txn={t} showSep={i < recent.length - 1} />
+            <TxnRow key={t.id} txn={t} showSep={i < recent.length - 1} onEdit={onEdit} />
           )) : (
             <EmptyState icon="wallet2" title="Nothing yet"
               sub="Tap the + button to log your first expense." cta="Add transaction" onCta={onOpenAdd} />

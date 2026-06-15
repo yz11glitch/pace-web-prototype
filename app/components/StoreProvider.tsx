@@ -19,7 +19,8 @@ interface Store {
   effectiveTheme: 'light' | 'dark';
   tab: Tab;
   currency: string;
-  addTxn: (t: Omit<Transaction, 'id' | 'date'>) => void;
+  addTxn: (t: Omit<Transaction, 'id'>) => void;
+  updateTxn: (id: string, patch: Omit<Transaction, 'id'>) => void;
   deleteTxn: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   updateBudget: (catId: string, val: number) => void;
@@ -46,11 +47,49 @@ function save(key: string, val: unknown) {
   try { window.localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
+function createTxnId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `u${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function loadTransactions(): Transaction[] {
+  const saved = load<unknown>('pace_txns_v1', INITIAL_TXNS);
+  if (!Array.isArray(saved)) return INITIAL_TXNS;
+
+  return saved.flatMap((value): Transaction[] => {
+    if (!value || typeof value !== 'object') return [];
+    const txn = value as Partial<Transaction>;
+    const amt = Number(txn.amt);
+    if (
+      !['expense', 'income', 'invest'].includes(txn.type || '') ||
+      !txn.cat ||
+      !Number.isFinite(amt)
+    ) return [];
+
+    const categoryName = typeof txn.name === 'string' ? txn.name : txn.cat;
+    const date = typeof txn.date === 'string' && !Number.isNaN(Date.parse(txn.date))
+      ? txn.date
+      : new Date().toISOString();
+
+    return [{
+      id: typeof txn.id === 'string' && txn.id ? txn.id : createTxnId(),
+      type: txn.type as Transaction['type'],
+      cat: txn.cat,
+      name: categoryName,
+      note: typeof txn.note === 'string' ? txn.note : '',
+      amt,
+      date,
+    }];
+  });
+}
+
 const subscribeToHydration = () => () => {};
 
 function StoreState({ children, persisted }: { children: ReactNode; persisted: boolean }) {
   const [txns, setTxns] = useState<Transaction[]>(() =>
-    persisted ? load('pace_txns_v1', INITIAL_TXNS) : INITIAL_TXNS
+    persisted ? loadTransactions() : INITIAL_TXNS
   );
   const [settings, setSettings] = useState<Settings>(() => {
     if (!persisted) return DEFAULT_SETTINGS;
@@ -86,10 +125,12 @@ function StoreState({ children, persisted }: { children: ReactNode; persisted: b
     }
   }, [theme, persisted]);
 
-  const addTxn = useCallback((t: Omit<Transaction, 'id' | 'date'>) => {
-    const id = 'u' + Date.now();
-    const date = new Date(2026, 5, 11).toISOString();
-    setTxns(prev => [{ id, date, ...t }, ...prev]);
+  const addTxn = useCallback((t: Omit<Transaction, 'id'>) => {
+    setTxns(prev => [{ id: createTxnId(), ...t }, ...prev]);
+  }, []);
+
+  const updateTxn = useCallback((id: string, patch: Omit<Transaction, 'id'>) => {
+    setTxns(prev => prev.map(t => t.id === id ? { id, ...patch } : t));
   }, []);
 
   const deleteTxn = useCallback((id: string) => {
@@ -121,7 +162,7 @@ function StoreState({ children, persisted }: { children: ReactNode; persisted: b
   return (
     <Ctx.Provider value={{
       txns, settings, theme, effectiveTheme, tab, currency: cur,
-      addTxn, deleteTxn, updateSettings, updateBudget,
+      addTxn, updateTxn, deleteTxn, updateSettings, updateBudget,
       setTheme, setTab, resetData,
       money: moneyWithCur,
     }}>

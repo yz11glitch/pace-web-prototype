@@ -197,7 +197,7 @@ function InvestCard() {
   );
 }
 
-function HistoryCard({ onDelete }: { onDelete: (id: string) => void }) {
+function HistoryCard({ onEdit }: { onEdit: (txn: Transaction) => void }) {
   const { txns, money } = useStore();
   const sorted = recentTxns(txns);
 
@@ -235,7 +235,7 @@ function HistoryCard({ onDelete }: { onDelete: (id: string) => void }) {
             </div>
             <div className="card" style={{ padding: '4px 4px' }}>
               {items.map((t, i) => (
-                <TxnRow key={t.id} txn={t} showSep={i < items.length - 1} onDelete={onDelete} />
+                <TxnRow key={t.id} txn={t} showSep={i < items.length - 1} onEdit={onEdit} />
               ))}
             </div>
           </div>
@@ -246,10 +246,10 @@ function HistoryCard({ onDelete }: { onDelete: (id: string) => void }) {
 }
 
 interface StatsScreenProps {
-  onDelete: (id: string) => void;
+  onEdit: (txn: Transaction) => void;
 }
 
-export default function StatsScreen({ onDelete }: StatsScreenProps) {
+export default function StatsScreen({ onEdit }: StatsScreenProps) {
   return (
     <div className="screen-fade col gap-16">
       <div className="t-h1 page-header">Stats</div>
@@ -258,7 +258,7 @@ export default function StatsScreen({ onDelete }: StatsScreenProps) {
       <InvestCard />
       <div className="col gap-10">
         <SectionHeader title="All transactions" />
-        <HistoryCard onDelete={onDelete} />
+        <HistoryCard onEdit={onEdit} />
       </div>
     </div>
   );

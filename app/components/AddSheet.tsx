@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import { useStore } from './StoreProvider';
-import { CATEGORIES, INCOME_CATS, INVEST_CATS, CAT_MAP } from '../lib/data';
+import {
+  CATEGORIES, INCOME_CATS, INVEST_CATS, CAT_MAP, Transaction,
+} from '../lib/data';
 
 function Keypad({ onKey }: { onKey: (key: string) => void }) {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'];
@@ -29,31 +31,59 @@ function Keypad({ onKey }: { onKey: (key: string) => void }) {
 
 interface AddSheetProps {
   open: boolean;
+  transaction?: Transaction | null;
   onClose: () => void;
-  onSaved?: (type: string, amt: number, cur: string) => void;
+  onSaved?: (mode: 'added' | 'updated', type: string, amt: number, cur: string) => void;
+  onDeleted?: () => void;
 }
 
-export default function AddSheet({ open, onClose, onSaved }: AddSheetProps) {
-  const { addTxn, currency } = useStore();
+function dateInputValue(iso?: string) {
+  const date = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(date.getTime())) return '';
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function dateFromInput(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day, 12).toISOString();
+}
+
+export default function AddSheet({
+  open, transaction, onClose, onSaved, onDeleted,
+}: AddSheetProps) {
+  const { addTxn, updateTxn, deleteTxn, currency } = useStore();
   const [type, setType] = useState<'expense' | 'income' | 'invest'>('expense');
   const [cat, setCat] = useState('food');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  const [date, setDate] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const editing = Boolean(transaction);
 
   const catList = type === 'expense' ? CATEGORIES : type === 'income' ? INCOME_CATS : INVEST_CATS;
 
   useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => {
-      setType('expense');
-      setCat('food');
-      setAmount('');
-      setNote('');
-      setNoteOpen(false);
+      const nextType = transaction?.type || 'expense';
+      const nextCat = transaction?.cat || 'food';
+      const categoryName = CAT_MAP[nextCat]?.name;
+      const nextNote = transaction
+        ? transaction.note || (transaction.name !== categoryName ? transaction.name : '')
+        : '';
+
+      setType(nextType);
+      setCat(nextCat);
+      setAmount(transaction ? String(transaction.amt) : '');
+      setNote(nextNote);
+      setDate(dateInputValue(transaction?.date));
+      setNoteOpen(Boolean(nextNote));
+      setConfirmDelete(false);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, transaction]);
 
   const changeType = (t: typeof type) => {
     setType(t);
@@ -76,15 +106,42 @@ export default function AddSheet({ open, onClose, onSaved }: AddSheetProps) {
   };
 
   const numAmount = parseFloat(amount || '0') || 0;
-  const valid = numAmount > 0;
+  const valid = numAmount > 0 && Boolean(date);
   const typeColor = type === 'expense' ? 'var(--warm)' : type === 'income' ? 'var(--green)' : 'var(--blue)';
 
   const handleSave = () => {
     if (!valid) return;
-    const c = CAT_MAP[cat];
-    const name = note.trim() ? note.trim() : c.name;
-    addTxn({ type, cat, amt: Math.round(numAmount * 100) / 100, name, note: '' });
-    onSaved?.(type, numAmount, currency);
+    const c = CAT_MAP[cat] || CAT_MAP.misc;
+    const cleanNote = note.trim();
+    const originalCategoryName = transaction ? CAT_MAP[transaction.cat]?.name : undefined;
+    const noteWasTitle = transaction && (
+      transaction.name === transaction.note ||
+      (!transaction.note && transaction.name !== originalCategoryName)
+    );
+    const name = !transaction || noteWasTitle
+      ? cleanNote || c.name
+      : transaction.name;
+    const txn = {
+      type,
+      cat,
+      amt: Math.round(numAmount * 100) / 100,
+      name,
+      note: cleanNote,
+      date: dateFromInput(date),
+    };
+    if (transaction) {
+      updateTxn(transaction.id, txn);
+    } else {
+      addTxn(txn);
+    }
+    onSaved?.(transaction ? 'updated' : 'added', type, numAmount, currency);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (!transaction) return;
+    deleteTxn(transaction.id);
+    onDeleted?.();
     onClose();
   };
 
@@ -102,14 +159,14 @@ export default function AddSheet({ open, onClose, onSaved }: AddSheetProps) {
         className={'sheet add-sheet' + (open ? ' show' : '')}
         role="dialog"
         aria-modal="true"
-        aria-label="Add transaction"
+        aria-label={editing ? 'Edit transaction' : 'Add transaction'}
       >
         <div className="sheet-handle" aria-hidden="true">
           <span className="sheet-grab" />
         </div>
 
         <div className="add-sheet-header row between">
-          <div className="t-h2">Add transaction</div>
+          <div className="t-h2">{editing ? 'Edit transaction' : 'Add transaction'}</div>
           <button type="button" className="press add-sheet-close" onClick={onClose} aria-label="Close">
             <Icon name="close" size={18} sw={2.2} />
           </button>
@@ -172,6 +229,16 @@ export default function AddSheet({ open, onClose, onSaved }: AddSheetProps) {
             </button>
           )}
 
+          <label className="transaction-date">
+            <span className="field-lbl">Date</span>
+            <input
+              className="input"
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+          </label>
+
           <Keypad onKey={onKey} />
 
           <button
@@ -181,8 +248,25 @@ export default function AddSheet({ open, onClose, onSaved }: AddSheetProps) {
             onClick={handleSave}
             style={{ background: valid ? typeColor : undefined }}
           >
-            Save {saveType} · {currency} {formattedAmount}
+            {editing ? 'Save changes' : `Save ${saveType}`} · {currency} {formattedAmount}
           </button>
+
+          {editing && (
+            confirmDelete ? (
+              <div className="delete-confirm" role="alert">
+                <span>Delete this transaction?</span>
+                <div className="row delete-confirm-actions">
+                  <button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                  <button type="button" className="delete-confirm-primary" onClick={handleDelete}>Delete</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="transaction-delete" onClick={() => setConfirmDelete(true)}>
+                <Icon name="trash" size={16} sw={2} />
+                Delete transaction
+              </button>
+            )
+          )}
         </div>
       </section>
     </>

@@ -8,6 +8,7 @@ import StatsScreen from './StatsScreen';
 import SettingsScreen from './SettingsScreen';
 import AddSheet from './AddSheet';
 import { useStore } from './StoreProvider';
+import { Transaction } from '../lib/data';
 
 function BottomNav() {
   const { tab, setTab } = useStore();
@@ -30,8 +31,9 @@ function BottomNav() {
 }
 
 export default function PaceApp() {
-  const { tab, setTab, deleteTxn } = useStore();
+  const { tab, setTab, txns } = useStore();
   const [sheet, setSheet] = useState(false);
+  const [editingTxnId, setEditingTxnId] = useState<string | null>(null);
   const [toast, setToast] = useState({ show: false, text: '', icon: 'check' });
   const scrollRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,33 +48,56 @@ export default function PaceApp() {
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 2200);
   }, []);
 
-  const onSaved = useCallback((type: string, amt: number, cur: string) => {
+  const onSaved = useCallback((mode: 'added' | 'updated', type: string, amt: number, cur: string) => {
     const label = type === 'expense' ? 'Expense' : type === 'income' ? 'Income' : 'Investment';
-    showToast(`${label} added · ${cur}${amt.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    const action = mode === 'added' ? 'added' : 'updated';
+    showToast(`${label} ${action} · ${cur}${amt.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   }, [showToast]);
 
-  const onDelete = useCallback((id: string) => {
-    deleteTxn(id);
+  const onDeleted = useCallback(() => {
     showToast('Transaction deleted', 'trash');
-  }, [deleteTxn, showToast]);
+  }, [showToast]);
+
+  const openAdd = useCallback(() => {
+    setEditingTxnId(null);
+    setSheet(true);
+  }, []);
+
+  const openEdit = useCallback((txn: Transaction) => {
+    setEditingTxnId(txn.id);
+    setSheet(true);
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    setSheet(false);
+    setEditingTxnId(null);
+  }, []);
+
+  const editingTxn = editingTxnId
+    ? txns.find(txn => txn.id === editingTxnId) || null
+    : null;
 
   return (
     <div className="app-shell">
       <main ref={scrollRef} className="app-content">
         {tab === 'home' && (
           <HomeScreen
-            onOpenAdd={() => setSheet(true)}
+            onOpenAdd={openAdd}
             onSignalTap={() => setTab('stats')}
             goStats={() => setTab('stats')}
+            onEdit={openEdit}
           />
         )}
-        {tab === 'stats' && <StatsScreen onDelete={onDelete} />}
+        {tab === 'stats' && <StatsScreen onEdit={openEdit} />}
         {tab === 'settings' && <SettingsScreen />}
       </main>
 
       <button
         className={'fab' + (sheet ? ' sheet-open' : '')}
-        onClick={() => setSheet(s => !s)}
+        onClick={() => {
+          if (sheet) closeSheet();
+          else openAdd();
+        }}
         aria-label="Add transaction"
       >
         <span style={{ color: '#fff', display: 'flex' }}>
@@ -82,7 +107,13 @@ export default function PaceApp() {
 
       <BottomNav />
       <Toast show={toast.show} text={toast.text} icon={toast.icon} />
-      <AddSheet open={sheet} onClose={() => setSheet(false)} onSaved={onSaved} />
+      <AddSheet
+        open={sheet}
+        transaction={editingTxn}
+        onClose={closeSheet}
+        onSaved={onSaved}
+        onDeleted={onDeleted}
+      />
     </div>
   );
 }

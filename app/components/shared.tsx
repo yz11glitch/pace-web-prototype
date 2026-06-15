@@ -51,8 +51,8 @@ export function SignalCard({ sig, onClick, index = 0 }: {
 }
 
 /* ---- TxnRow ---- */
-export function TxnRow({ txn, onDelete, showSep = true }: {
-  txn: Transaction; onDelete?: (id: string) => void; showSep?: boolean;
+export function TxnRow({ txn, onEdit, showSep = true }: {
+  txn: Transaction; onEdit?: (txn: Transaction) => void; showSep?: boolean;
 }) {
   const { money } = useStore();
   const c = CAT_MAP[txn.cat] || CAT_MAP['misc'];
@@ -60,11 +60,16 @@ export function TxnRow({ txn, onDelete, showSep = true }: {
   const isInv = txn.type === 'invest';
   const amtColor = isInv ? 'var(--blue)' : (isOut ? 'var(--ink)' : 'var(--green)');
   const prefix = isInv ? '↑' : (isOut ? '−' : '+');
-  const metaText = (txn.note ? txn.note : c.name) + ' · ' + dateLabel(txn.date);
+  const metaText = c.name + ' · ' + dateLabel(txn.date);
 
   return (
     <div>
-      <div className="txn">
+      <button
+        type="button"
+        className={'txn' + (onEdit ? ' txn-action' : '')}
+        onClick={() => onEdit?.(txn)}
+        aria-label={onEdit ? `Edit ${txn.name} transaction` : undefined}
+      >
         <CatBadge cat={txn.cat} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="txn-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -76,17 +81,13 @@ export function TxnRow({ txn, onDelete, showSep = true }: {
           <div className="txn-amt t-num" style={{ color: amtColor }}>
             {prefix}{money(txn.amt, { cents: true })}
           </div>
-          {onDelete && (
-            <button onClick={() => onDelete(txn.id)} style={{
-              width: 30, height: 30, borderRadius: 8, background: 'var(--bg-2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--warm)',
-              flexShrink: 0,
-            }}>
-              <Icon name="trash" size={15} sw={2} />
-            </button>
+          {onEdit && (
+            <span className="txn-edit-icon" aria-hidden="true">
+              <Icon name="edit" size={14} sw={2} />
+            </span>
           )}
         </div>
-      </div>
+      </button>
       {showSep && <div className="txn-sep" />}
     </div>
   );

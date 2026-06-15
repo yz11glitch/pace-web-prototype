@@ -190,11 +190,17 @@ input[type=number] { -moz-appearance: textfield; }
 .signal-accent { position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; }
 
 /* ============================================================ TRANSACTION */
-.txn { display: flex; align-items: center; gap: 12px; padding: 9px 4px; position: relative; }
+.txn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 4px; position: relative; text-align: left; }
+.txn-action { border-radius: 14px; transition: background .15s, transform .12s; }
+.txn-action:active { background: var(--bg-2); transform: scale(.99); }
 .txn-ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .txn-name { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -.2px; }
 .txn-meta { font-size: 12.5px; font-weight: 500; color: var(--ink-3); margin-top: 1px; }
 .txn-amt { font-size: 15.5px; font-weight: 700; letter-spacing: -.3px; }
+.txn-edit-icon {
+  width: 25px; height: 25px; border-radius: 8px; background: var(--bg-2);
+  display: flex; align-items: center; justify-content: center; color: var(--ink-3); flex-shrink: 0;
+}
 .txn-sep { height: 1px; background: var(--hair-2); margin-left: 53px; }
 
 /* ============================================================ NAVBAR */
@@ -394,6 +400,13 @@ input[type=number] { -moz-appearance: textfield; }
 .optional-label { color: var(--ink-3); font-weight: 600; }
 .add-note-field { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
 .add-note-field .input { padding-block: 10px; }
+.transaction-date {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.transaction-date .input { padding-block: 9px; }
 
 /* keypad */
 .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -416,6 +429,32 @@ input[type=number] { -moz-appearance: textfield; }
   flex-shrink: 0;
   padding: 14px 16px;
 }
+.transaction-delete {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--warm);
+  font-size: 13px;
+  font-weight: 800;
+}
+.delete-confirm {
+  min-height: 42px;
+  padding: 7px 9px 7px 12px;
+  border-radius: 13px;
+  background: var(--warm-soft);
+  color: var(--warm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.delete-confirm-actions { gap: 5px; flex-shrink: 0; }
+.delete-confirm-actions button { padding: 7px 9px; border-radius: 9px; font-size: 12px; font-weight: 800; }
+.delete-confirm-primary { background: var(--warm); color: #fff; }
 
 @media (max-height: 760px) {
   .add-sheet { height: 94dvh; max-height: none; }
