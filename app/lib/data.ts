@@ -1,4 +1,4 @@
-// PACE — data model, sample data, money + signal logic
+// PACE — data model, sample data, money + signal exports
 
 const TODAY = new Date(2026, 5, 11); // 11 June 2026
 const DAYS_IN_MONTH = 30;
@@ -200,116 +200,8 @@ export function weeklyTrend(txns: Transaction[]) {
   return weeks.slice(0, Math.ceil(DAY / 7)).map((v, i) => ({ label: 'W' + (i + 1), total: v }));
 }
 
-export interface Signal {
-  id: string;
-  tone: 'warm' | 'green' | 'blue';
-  icon: string;
-  cat?: Category;
-  title: string;
-  sub: string;
-}
-
-export function computeSignals(txns: Transaction[], settings: Settings): Signal[] {
-  const out: Signal[] = [];
-  const sum = summary(txns, settings);
-  const totals = categoryTotals(txns);
-  const expectedFrac = DAY / DAYS_IN_MONTH;
-
-  // 1. category moving fast
-  let fastest: { cat: Category; spent: number; bud: number; frac: number; speed: number } | null = null;
-  CATEGORIES.forEach(c => {
-    const spent = totals[c.id]; const bud = settings.budgets[c.id] || 0;
-    if (bud <= 0 || spent <= 0) return;
-    const frac = spent / bud;
-    const speed = frac / expectedFrac;
-    if (speed > 1.15 && frac < 1 && (!fastest || speed > fastest.speed)) {
-      fastest = { cat: c, spent, bud, frac, speed };
-    }
-  });
-  if (fastest) {
-    const f = fastest as { cat: Category; spent: number; bud: number; frac: number; speed: number };
-    out.push({
-      id: 'fast', tone: 'warm', icon: 'fire', cat: f.cat,
-      title: `${f.cat.name} is moving fast this month`,
-      sub: `${money(f.spent)} of ${money(f.bud)} · ${Math.round(f.frac * 100)}% used, ${Math.round(expectedFrac * 100)}% of the month gone`,
-    });
-  }
-
-  // 2. over budget
-  let over: { cat: Category; amt: number; spent: number; bud: number } | null = null;
-  CATEGORIES.forEach(c => {
-    const spent = totals[c.id]; const bud = settings.budgets[c.id] || 0;
-    if (bud > 0 && spent > bud) {
-      const amt = spent - bud;
-      if (!over || amt > over.amt) over = { cat: c, amt, spent, bud };
-    }
-  });
-  if (over) {
-    const o = over as { cat: Category; amt: number; spent: number; bud: number };
-    out.push({
-      id: 'over', tone: 'warm', icon: 'alert', cat: o.cat,
-      title: `${o.cat.name} is ${money(o.amt)} over budget`,
-      sub: `Spent ${money(o.spent)} against a ${money(o.bud)} budget`,
-    });
-  }
-
-  // 3. daily left
-  if (sum.remaining > 0 && sum.daysLeft > 0) {
-    out.push({
-      id: 'daily', tone: 'blue', icon: 'wallet',
-      title: `You have ${money(sum.dailyLeft)}/day left before your limit`,
-      sub: `${money(sum.remaining)} across ${sum.daysLeft} days keeps you on budget`,
-    });
-  } else if (sum.remaining <= 0) {
-    out.push({
-      id: 'daily', tone: 'warm', icon: 'wallet',
-      title: `You’ve reached your monthly budget`,
-      sub: `${money(-sum.remaining)} over your total limit so far`,
-    });
-  }
-
-  // 4. invested so far
-  if (sum.totalInvest > 0) {
-    const pctTarget = settings.investTarget > 0
-      ? Math.round(sum.totalInvest / settings.investTarget * 100) : 0;
-    out.push({
-      id: 'invest', tone: 'green', icon: 'invest',
-      title: `You’ve invested ${money(sum.totalInvest)} so far`,
-      sub: `${pctTarget}% of your ${money(settings.investTarget)} monthly target`,
-    });
-  }
-
-  // 5. recurring merchant
-  const counts: Record<string, { n: number; total: number }> = {};
-  txns.filter(t => t.type === 'expense').forEach(t => {
-    if (!counts[t.name]) counts[t.name] = { n: 0, total: 0 };
-    counts[t.name].n++;
-    counts[t.name].total += t.amt;
-  });
-  let topMerchant: { name: string; n: number; total: number } | null = null;
-  Object.entries(counts).forEach(([name, v]) => {
-    if (v.n >= 4 && (!topMerchant || v.n > topMerchant.n)) topMerchant = { name, ...v };
-  });
-  if (topMerchant) {
-    const m = topMerchant as { name: string; n: number; total: number };
-    out.push({
-      id: 'merchant', tone: 'blue', icon: 'repeat',
-      title: `${m.name} appeared ${m.n} times this month`,
-      sub: `Totalling ${money(m.total, { cents: true })} — your most frequent spend`,
-    });
-  }
-
-  // 6. on-track
-  if (sum.onTrack && !over) {
-    out.push({
-      id: 'ontrack', tone: 'green', icon: 'check',
-      title: `Nice — you’re pacing under budget`,
-      sub: `${money(sum.expectedByNow - sum.totalSpent)} below where you'd expect by day ${DAY}`,
-    });
-  }
-
-  return out;
-}
+export { computeSignals } from './signals';
+export type { Signal, SignalType } from './signals';
 
 export function recentTxns(txns: Transaction[], limit?: number): Transaction[] {
   const sorted = [...txns].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || (b.id > a.id ? 1 : -1));
