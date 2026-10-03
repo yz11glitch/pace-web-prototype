@@ -1,52 +1,34 @@
-# Pace
+# Pace — earlier web prototype
 
-Pace is a local-first money tracking prototype built with Next.js.
+An earlier personal-finance web prototype exploring the Pace product direction: quick expense entry, budget visibility and rule-based spending signals.
 
-## Run Locally
+**This repository is the old web prototype.** The current native, local-first Pace implementation is private and under active development. Its code is not included here.
 
-Install dependencies and start the development server:
+## What this version does
+
+Built with Next.js 16, React 19 and TypeScript, the prototype provides transaction entry, Home signals, statistics, settings and JSON backup/import. [`app/lib/signals.ts`](app/lib/signals.ts) derives deterministic signals from the stored financial state.
+
+Transactions, settings and theme preferences live in browser `localStorage`. There is no database, authentication or cross-device synchronization. Clearing browser data resets the prototype. It is a web/PWA exploration, not the current native product.
+
+[Open the web prototype](https://pace-nine-xi.vercel.app). Use fictional entries when evaluating it; no native-product demo is published here.
+
+## Local development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Build
-
-Create and run a production build:
+Open `http://localhost:3000`. No environment variables are required.
 
 ```bash
+npm run test:signals
+npm run lint
+npx tsc --noEmit
 npm run build
 npm run start
 ```
 
-Project checks:
+On 4 October 2026, all **12 signal scenarios** passed their expectations; lint, TypeScript and production build checks passed. The scenario harness covers signal behaviour, not a comprehensive browser test suite. Screenshots of the current native implementation are intentionally not used to represent this prototype.
 
-```bash
-npm run lint
-npx tsc --noEmit
-npm run build
-```
-
-## PWA Testing
-
-iOS may cache Home Screen web app metadata. After changing icons, safe-area
-handling, or status bar settings, delete the existing Home Screen icon and add
-Pace again.
-
-## Data Storage
-
-Pace currently stores transactions, settings, and theme preferences in the
-browser's `localStorage`. Data stays in the current browser profile and is not
-synced between devices. Clearing site data or using a different browser will
-start with the prototype's default data.
-
-There is no database, Supabase integration, or authentication yet.
-
-## Deployment
-
-The deployment target is [Vercel](https://vercel.com/). Import the repository
-as a Next.js project and use Vercel's default build settings. No environment
-variables are required for the current localStorage prototype.
+This repository remains a secondary learning/product exploration project. A separately reviewed public Pace repository is planned; no native code is being published as part of this presentation update.
