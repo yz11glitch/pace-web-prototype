@@ -31,4 +31,4 @@ npm run start
 
 On 4 October 2026, all **12 signal scenarios** passed their expectations; lint, TypeScript and production build checks passed. The scenario harness covers signal behaviour, not a comprehensive browser test suite. Screenshots of the current native implementation are intentionally not used to represent this prototype.
 
-This repository remains a secondary learning/product exploration project. A separately reviewed public Pace repository is planned; no native code is being published as part of this presentation update.
+**Superseded.** The current native, local-first Pace project is under active development in a private repository. A sanitized public snapshot is being reviewed before publication. This repository is archived and kept for reference.
