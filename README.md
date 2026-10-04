@@ -2,7 +2,7 @@
 
 An earlier personal-finance web prototype exploring the Pace product direction: quick expense entry, budget visibility and rule-based spending signals.
 
-**This repository is the old web prototype.** The current native, local-first Pace implementation is private and under active development. Its code is not included here.
+**This repository is the archived web prototype.** Superseded by [Pace, the native local-first iPhone app](https://github.com/yz11glitch/pace). The native app is under active development; its public repository is a sanitized snapshot.
 
 ## What this version does
 
